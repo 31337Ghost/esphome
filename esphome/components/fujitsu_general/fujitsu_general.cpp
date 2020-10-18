@@ -299,6 +299,8 @@ bool FujitsuGeneralClimate::parse_state_frame_(const uint8_t remote_state[]) {
 bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
   uint8_t remote_state[FUJITSU_GENERAL_STATE_LENGTH] = {0};
 
+  ESP_LOGV(TAG, "Staring receive 0x%02X", remote_state);
+
   if (!data.expect_item(FUJITSU_GENERAL_HEADER_MARK, FUJITSU_GENERAL_HEADER_SPACE))
     return false;
 
