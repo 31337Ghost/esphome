@@ -351,6 +351,8 @@ bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
     }
   }
 
+  ESP_LOGV(TAG, "Decoded 0x%02X", remote_state);
+
   if (!data.expect_item(FUJITSU_GENERAL_TRL_MARK, FUJITSU_GENERAL_TRL_SPACE))
     return false;
 
