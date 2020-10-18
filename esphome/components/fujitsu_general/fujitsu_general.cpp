@@ -184,8 +184,6 @@ void FujitsuGeneralClimate::transmit_state() {
   }
   remote_state[15] = 0x100 - remote_state[15];  // mod 256
 
-  ESP_LOGD(TAG, "Sending 0x%02X", remote_state);
-
   auto transmit = this->transmitter_->transmit();
   auto data = transmit.get_data();
 
@@ -301,8 +299,6 @@ bool FujitsuGeneralClimate::parse_state_frame_(const uint8_t remote_state[]) {
 bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
   uint8_t remote_state[FUJITSU_GENERAL_STATE_LENGTH] = {0};
 
-  ESP_LOGD(TAG, "Staring receive 0x%02X", remote_state);
-
   if (!data.expect_item(FUJITSU_GENERAL_HEADER_MARK, FUJITSU_GENERAL_HEADER_SPACE))
     return false;
 
@@ -354,11 +350,6 @@ bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
       remote_state[pos] = byte;
     }
   }
-
-  ESP_LOGD(TAG, "Decoded 0x%02X", remote_state);
-
-  if (!data.expect_item(FUJITSU_GENERAL_TRL_MARK, FUJITSU_GENERAL_TRL_SPACE))
-    return false;
 
   return this->parse_state_frame_(remote_state);
 }
