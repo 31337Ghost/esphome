@@ -337,7 +337,7 @@ bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
   }
 
   // If its not off packet - grab other bytes
-  if (remote_state[5] !== FUJITSU_GENERAL_OFF_BYTE5 && remote_state[6] !== FUJITSU_GENERAL_OFF_BYTE6) {
+  if (remote_state[5] != FUJITSU_GENERAL_OFF_BYTE5 && remote_state[6] != FUJITSU_GENERAL_OFF_BYTE6) {
     for (uint8_t pos = FUJITSU_GENERAL_OFF_LENGTH; pos < FUJITSU_GENERAL_STATE_LENGTH; pos++) {
       uint8_t byte = 0;
       for (int8_t bit = 0; bit < 8; bit++) {
