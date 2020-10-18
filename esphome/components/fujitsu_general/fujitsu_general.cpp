@@ -250,5 +250,112 @@ void FujitsuGeneralClimate::transmit_off_() {
   this->power_ = false;
 }
 
+bool FujitsuGeneralClimate::parse_state_frame_(const uint8_t remote_state[]) {
+  if (remote_state[5] == FUJITSU_GENERAL_OFF_BYTE5 && remote_state[6] == FUJITSU_GENERAL_OFF_BYTE6) {
+    this->mode = climate::CLIMATE_MODE_OFF;
+  } else {
+    // Set mode
+    switch (remote_state[9]) {
+      case FUJITSU_GENERAL_MODE_COOL_BYTE9:
+        this->mode = climate::CLIMATE_MODE_COOL;
+        break;
+      case FUJITSU_GENERAL_MODE_HEAT_BYTE9:
+        this->mode = climate::CLIMATE_MODE_HEAT;
+        break;
+      case FUJITSU_GENERAL_MODE_DRY_BYTE9:
+        this->mode = climate::CLIMATE_MODE_DRY;
+        break;
+      case FUJITSU_GENERAL_MODE_FAN_BYTE9:
+        this->mode = climate::CLIMATE_MODE_FAN_ONLY;
+        break;
+      case FUJITSU_GENERAL_MODE_AUTO_BYTE9:
+      default:
+        this->mode = climate::CLIMATE_MODE_AUTO;
+        break;
+    }
+
+    // Set fan
+    switch (remote_state[10]) {
+      case FUJITSU_GENERAL_FAN_HIGH_BYTE10:
+        this->fan_mode = climate::CLIMATE_FAN_HIGH;
+        break;
+      case FUJITSU_GENERAL_FAN_MEDIUM_BYTE10:
+        this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
+        break;
+      case FUJITSU_GENERAL_FAN_LOW_BYTE10:
+        this->fan_mode = climate::CLIMATE_FAN_LOW;
+        break;
+      case FUJITSU_GENERAL_FAN_AUTO_BYTE10:
+      default:
+        this->fan_mode = climate::CLIMATE_FAN_AUTO;
+        break;
+    }
+  }
+
+  this->publish_state();
+  return true;
+}
+
+bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
+  uint8_t remote_state[FUJITSU_GENERAL_STATE_LENGTH] = {0};
+
+  if (!data.expect_item(FUJITSU_GENERAL_HEADER_MARK, FUJITSU_GENERAL_HEADER_SPACE))
+    return false;
+
+  // Firstly suppose to have shorter packet
+  for (uint8_t pos = 0; pos < FUJITSU_GENERAL_OFF_LENGTH; pos++) {
+    uint8_t byte = 0;
+    for (int8_t bit = 0; bit < 8; bit++) {
+      if (data.expect_item(FUJITSU_GENERAL_BIT_MARK, FUJITSU_GENERAL_ONE_SPACE))
+        byte |= 1 << bit;
+      else if (!data.expect_item(FUJITSU_GENERAL_BIT_MARK, FUJITSU_GENERAL_ZERO_SPACE)) {
+        return false;
+      }
+    }
+    remote_state[pos] = byte;
+    if (pos == 0) {
+      // frame header
+      if (byte != FUJITSU_GENERAL_BASE_BYTE0)
+        return false;
+    } else if (pos == 1) {
+      // frame header
+      if (byte != FUJITSU_GENERAL_BASE_BYTE1)
+        return false;
+    } else if (pos == 2) {
+      // frame header
+      if (byte != FUJITSU_GENERAL_BASE_BYTE2)
+        return false;
+    } else if (pos == 3) {
+      // frame header
+      if (byte != FUJITSU_GENERAL_BASE_BYTE3)
+        return false;
+    } else if (pos == 4) {
+      // frame header
+      if (byte != FUJITSU_GENERAL_BASE_BYTE4)
+        return false;
+    }
+  }
+
+  // If its not off packet - grab other bytes
+  if (remote_state[5] !== FUJITSU_GENERAL_OFF_BYTE5 && remote_state[6] !== FUJITSU_GENERAL_OFF_BYTE6) {
+    for (uint8_t pos = FUJITSU_GENERAL_OFF_LENGTH; pos < FUJITSU_GENERAL_STATE_LENGTH; pos++) {
+      uint8_t byte = 0;
+      for (int8_t bit = 0; bit < 8; bit++) {
+        if (data.expect_item(FUJITSU_GENERAL_BIT_MARK, FUJITSU_GENERAL_ONE_SPACE))
+          byte |= 1 << bit;
+        else if (!data.expect_item(FUJITSU_GENERAL_BIT_MARK, FUJITSU_GENERAL_ZERO_SPACE)) {
+          return false;
+        }
+      }
+      remote_state[pos] = byte;
+    }
+  }
+
+  if (!data.expect_item(FUJITSU_GENERAL_TRL_MARK, FUJITSU_GENERAL_TRL_SPACE))
+    return false;
+
+  return this->parse_state_frame_(remote_state);
+}
+
 }  // namespace fujitsu_general
 }  // namespace esphome
